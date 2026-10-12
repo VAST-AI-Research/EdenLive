@@ -9,4 +9,4 @@
 
 It is aimed at interactive scenes such as explorable game worlds, look development for the same layout and camera, restyling existing video, and turning human footage into robot views for embodied-data augmentation.
 
-https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e64ab20b.mp4
+[![EdenLive](assets/teaser.jpg)](https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e64ab20b.mp4)
