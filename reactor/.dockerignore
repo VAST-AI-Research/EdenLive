@@ -1,0 +1,13 @@
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.git
+.venv
+demo/node_modules
+demo/dist
+tests
+.env
+.env.*
+source
+weights

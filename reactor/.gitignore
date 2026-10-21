@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+demo/node_modules/
+demo/dist/
+demo/public/local-games/
+demo/public/covers/
+.env
+.env.*
+*.log
+source/
+weights/

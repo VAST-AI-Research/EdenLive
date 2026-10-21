@@ -224,6 +224,38 @@ Open `http://<host>:8089` (`APP_PORT` in `deploy.conf`).
 The real-time service uses the TAEHV decoder. See [`realtime/README.md`](realtime/README.md)
 for the service topology and developer documentation.
 
+## Inference with Reactor Runtime
+
+The [Reactor integration](reactor/README.md) serves EdenLive's four-step 5B pipeline
+with synchronized draft and generated video, keyboard controls, live prompt updates,
+and a browser demo. It runs on one B200 and keeps the native inference and training
+entrypoints unchanged.
+
+Install the [Reactor CLI](https://docs.reactor.inc/deploy) and prepare
+`EDEN_BUNDLE` following [the source and weights instructions](reactor/README.md#1-prepare-the-source-and-weights).
+The bundle uses a pinned seven-game source snapshot; the current repository's game
+registry has different entries.
+
+```sh
+cd reactor
+reactor build
+reactor run --gpus device=0 --shm-size 2g --weights "$EDEN_BUNDLE" --port 8080
+```
+
+Wait for `curl http://localhost:8080/health` to report `"state":"available"`.
+Then, in a second terminal from the repository root:
+
+```sh
+cd reactor/demo
+npm ci
+VITE_REACTOR_URL=http://localhost:8080 npm run dev
+```
+
+Open the URL printed by Vite, select **Local**, click **Connect**, choose a game
+and reference, then press **Start**. **Update prompt** changes upcoming appearance
+while keeping the video history. See the [Reactor guide](reactor/README.md) for
+playback controls and SSH/TURN networking.
+
 ## Your own data
 
 The default profiles read a recording manifest (CSV/JSONL/JSON/parquet), one

@@ -1,0 +1,47 @@
+# Copyright (c) 2026 Reactor Technologies, Inc. All rights reserved.
+source: source
+checkpoint: weights/EdenLive
+attention_backend: fa4
+cuda_graph: true
+compile_model: true
+# Generate throwaway worlds during load until every compiled shape and CUDA
+# graph exists, then play a throwaway session of every game through the
+# application, so the first session runs at the speed of later ones.
+warmup: true
+# Size the game renders at, [width, height]; the draft is scaled to 1280x704.
+# On the GPU the full size captures a chunk in about 0.2 s. If the game falls
+# back to software rendering, [832, 458] keeps the capture faster than real time.
+game_capture: [1280, 704]
+# How a captured game frame leaves the browser. `raw` (the default): the canvas
+# pixels exactly, with no image codec: a 12-frame capture on a B200 takes about
+# 0.11 s. `jpeg`: the canvas encoded as JPEG quality 0.8 and decoded here, the
+# frames the capture delivered before (about 0.20 s per chunk).
+capture_format: raw
+# Which game frames are rendered and leave the browser. `sparse` (the default):
+# only the frames the model conditions on (every fourth: 0, 4, 8); the frames
+# between still advance the game with their own keys but are not rendered or
+# read back, and `draft_video` repeats the last read-back frame in their place,
+# so the draft track updates at 6 Hz. A 12-frame capture on a B200 takes about
+# 0.04 s. `sparse` assumes a game's logic never reads back from its render (true
+# for the seven shipped games). `full`: every frame is rendered and read back,
+# for a game whose logic reads its own render, or when a 24 fps draft track is
+# wanted.
+draft_video: sparse
+# Rate both output tracks play at with source `game`, in frames per second
+# (with source `client` they play at the client's own rate). Every generated frame
+# is 1/24 s of game time (the game steps 1/24 s per frame, and the model was
+# trained on 24 fps video), so 24 plays the world at its real speed. The
+# default 40 fast-forwards the same frames: a chunk plays sooner after it is
+# made, so a key shows up sooner (median 0.44 s at 41 against 0.84 s at 24 on a
+# B200, client on the same host), at the cost of motion running 1.7 times too
+# fast. Generation sustains 37-40 new fps on a B200, so 40 sits at its limit;
+# above it the screen freezes between chunks.
+play_fps: 40
+# Seconds of pre-roll: from a client's connection until Start (at most this
+# long), both output tracks play the staged reference (black before one is
+# staged) with light per-frame noise at play_fps. A connection's bandwidth
+# estimate starts low and grows only while video flows, so without it the
+# first world's opening seconds outrun the estimate: frames queue in the
+# sender for up to 2 s, arrive at 7-15 fps, then in a burst the browser partly
+# drops. The pre-roll lets the estimate grow before the world. 0 turns it off.
+preroll_s: 20

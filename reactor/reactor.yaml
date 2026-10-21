@@ -1,0 +1,229 @@
+# Copyright (c) 2026 Reactor Technologies, Inc. All rights reserved.
+$schema: reactor/v2
+model:
+  name: eden-live
+  # 2.1.4: PATCH. Reuse upstream games, covers and capture timeline. The demo
+  # packages source assets during build; Three.js is an npm dependency.
+  # No command, sampling, cache or playback change.
+  # 2.1.3: PATCH. Every Node.js process in the container (only the Playwright
+  # drivers that relay the game browser) starts with `--disable-sigusr1`. An
+  # OpenTelemetry eBPF agent on the nodes opened a driver's debugger with
+  # SIGUSR1 and injected code that printed to the driver's stdout, the channel
+  # Playwright uses for its length-prefixed protocol: the capture never got
+  # another reply and the game froze until the 60 s stall timeout, in nearly
+  # every server-game session on prod. A driver that does not handle SIGUSR1 is
+  # skipped by the agent. No schema change, no behaviour change.
+  # 2.1.2: PATCH. The model requests 1 B200 again, which reverts 2.1.1. The
+  # prod Supervisor now mounts a 32Gi /dev/shm on every model pod
+  # (REA-7233), so the second GPU is not necessary. No schema change.
+  # 2.1.1: PATCH. Temporary (REA-7289): the model requests 2 B200s instead
+  # of 1. The prod Supervisor mounts a sized /dev/shm only on a pod with
+  # more than one GPU, and the runner's step transport needs it: on the
+  # container's 64 MB default, every session fails at the second chunk with
+  # `SharedSlotAllocationFailed`. The model still runs on one GPU
+  # (`world_size=1`); the second is idle. Set the count back to 1 when the
+  # Supervisor that mounts /dev/shm on every pod (REA-7233) is in prod. No
+  # schema change.
+  # 2.1.0: MINOR. With source `client`, output plays at the rate the client's
+  # frames arrive instead of `play_fps`: measured on the server from the
+  # frames received on `source_video` between chunks, smoothed, clamped to
+  # 10-60 fps, and 24 fps until measured. Since 2.0.0 a 24 fps client's
+  # chunks played at 40 fps for 0.3 s and then held their last frame for
+  # 0.2 s, every chunk; served on a B200, a 24 fps client now gets 24 fps
+  # output with a chunk every 0.50 s and no hold, and a 40 fps client 40 fps.
+  # Source `game` is unchanged: it plays at `play_fps`. `set_prompt` with
+  # the current text no longer rebuilds the prompt bank and replies at once
+  # (a rebuild before a world took about 1.4 s on a B200). From a client's
+  # connect until `start` the app plays the staged reference on both tracks
+  # (`preroll_s` in edenlive.yaml, 20 s; 0 turns it off), so the connection's
+  # bandwidth estimate has grown before the first world: its generated video
+  # was frozen 1.3-2.5 s in the first 10 s on every new connection, now under
+  # 0.3 s with no dropped frames. The `set_source` and `set_prompt`
+  # descriptions change in the schema, so this is a minor release.
+  # 2.0.1: PATCH. A pause longer than 60 s
+  # no longer restarts the game on resume. The stall clock counts only time
+  # the world runs, from the last captured frame. Within one world, a chunk
+  # prompt already encoded earlier in that world reuses its text embeddings
+  # instead of encoding again (about 23 ms each on a B200); a new world starts
+  # with none. Condition frames go to the GPU as uint8 and are converted
+  # there, and the generated frames come back into page-locked memory. Output
+  # frames are byte-identical to before for a fixed seed and scripted keys.
+  # The DiT keeps one KV cache for the process and graphs every chunk after
+  # the first, each cache-filling chunk with its own CUDA graph, captured once
+  # during load: a world's chunks 1 to 6 take about 0.16 to 0.21 s instead of
+  # 0.31 to 0.36 s on a B200, for about 1.1 GiB more device memory. Output is
+  # byte-identical to the eager DiT. A world's first chunk is graphed too, with
+  # two graphs (its denoising passes carry a per-token timestep, its cache
+  # commit a scalar one), captured during load in two extra one-chunk warmup
+  # worlds: the first chunk, the world's start included, takes about 0.18 s
+  # instead of 0.35 s on a B200, for 0.44-0.97 GiB more device memory. Output
+  # is byte-identical to the eager DiT.
+  # `start` no longer waits for a browser or a garbage collection. With source
+  # `game`, `select_game` launches the game's browser and loads its page in
+  # the background, and after each chunk a spare is launched for the same
+  # game, so `start` takes a page already at the game's opening; at most one
+  # spare exists, and it is closed with the session. The opening prompt's
+  # text embeddings are kept for the process (up to 16, 4 MiB each), and the
+  # rollout cache is built from them without the pipeline's full gc.collect().
+  # On a B200, served, Start to the first generated chunk drops from 1.6-2.0 s
+  # to 0.54-0.74 s when Start follows the selection by 2 s or restarts a
+  # world. Captured game frames, HUD states, keys and events, and generated
+  # frames are byte-identical to before. No schema change.
+  # Each game has a prompt bank: `edenlive_bank.json` lists the 128 event
+  # combinations its chunks most often carry, and `select_game` encodes the
+  # scene text joined with each before it replies (about 1.4 s on a B200,
+  # alongside the 0.7 s game load; 512 MiB of device memory for the selected
+  # game only). A chunk whose prompt is banked never runs the text encoder
+  # (about 23 ms); any other prompt is encoded as before. `set_prompt` rebuilds
+  # the bank: before a world the reply waits for it, during a world it fills
+  # in the background, between steps, while play goes on. The bank is dropped at the session's
+  # end. Banked embeddings are bit-identical to a live encode, so output frames
+  # are byte-identical. The `chunk timing` debug line now says whether the
+  # chunk ran the text encoder. Only the `select_game` and `set_prompt`
+  # descriptions change in the schema.
+  # Load ends with a warm-up session through the application's own commands
+  # and steps, with no client: every game is selected, started and played
+  # for its first two chunks, then the session ends as any session does and
+  # every browser it launched has exited before the server reports available.
+  # The first session after a load then pays none of a fresh process's first
+  # costs (the first cover read, capture module and Playwright import, browser
+  # launch, each game's first captures, the runner's shared-memory growth).
+  # Load takes about 11 s longer on a B200. Captured game frames, HUD states,
+  # keys and events, and generated frames are byte-identical. No schema change.
+  # 2.0.0: MAJOR. `state_update` shows what the game is doing: `game_state`
+  # (RUNNING / WON / LOST), the `outcome` card, `health` and `health_max`
+  # after each chunk, and that chunk's event sentences as `events`. The
+  # server logs the outcome when a game ends. A new `set_look(yaw, pitch)`
+  # holds a mouse-look rate, each -1..1, that the game applies on every frame
+  # on top of the arrow keys' look; `state_update` reports it as `look`.
+  # Major because the new `state_update` fields are required properties of the
+  # message, which the schema check counts as breaking for strict clients. No
+  # field, command or track is removed or renamed, and a session that never
+  # calls `set_look` drives the game exactly as before.
+  # `draft_video: sparse` is now the default in edenlive.yaml: a game chunk
+  # captures in about 0.04 s instead of 0.12 s on a B200, the model's
+  # conditioning is unchanged, and the `draft_video` track repeats each
+  # condition frame until the next. `draft_video: full` restores a 24 fps
+  # draft track and is required for a game whose logic reads its render.
+  # Both output tracks play at `play_fps` from edenlive.yaml, now 40 (was a
+  # fixed 24): a chunk plays sooner after it is made, so a key shows up sooner,
+  # and the game runs 1.7 times its real speed. `play_fps: 24` restores it.
+  # 1.1.4: PATCH. `draft_video: sparse` also skips the three.js render on the
+  # frames it does not read back: those run the game logic only. Condition
+  # frames stay byte-identical to `full` for the shipped games, whose logic
+  # never reads back from the render. No schema change.
+  # 1.1.3: PATCH. `draft_video: sparse` in edenlive.yaml (default `full`,
+  # unchanged) reads back only the game frames the model conditions on (0, 4,
+  # 8 of each chunk); the frames between still advance and render with their
+  # own keys, and `draft_video` repeats the last read-back frame in their
+  # place. The conditioning frames are byte-identical to `full`. No schema
+  # change.
+  # 1.1.2: PATCH. The game capture (renderer, timeline and the page host
+  # scripts) is vendored in `capture/` instead of being imported from
+  # the source bundle; the bundle still supplies the games. Captured frames
+  # and HUD states are byte-identical to the bundle's capture. The draft
+  # frames are now the canvas pixels exactly (`capture_format: raw` in
+  # edenlive.yaml), with no JPEG encode or decode: a 12-frame chunk captures
+  # in about 0.11 s instead of 0.20 s on a B200. Output conditioned on raw
+  # drafts differs from JPEG-conditioned output only at the pixel level;
+  # `capture_format: jpeg` restores the previous drafts. No schema change.
+  # 1.1.1: PATCH. A wedged game browser no longer freezes the model for every
+  # later session (REA-7232). Closing the game returns at once and tears the
+  # browser down on its own thread; a browser that does not exit within 10 s
+  # is killed. A chunk still capturing after 60 s is a stalled game: the step
+  # is refused and the game restarts from its opening in the same world.
+  # Command entry, step refusals, and session teardown log at info. No schema
+  # change.
+  # 1.1.0: MINOR. The draft and the generated frames are two tracks:
+  # `main_video` carries the generated frames at 1280x704 and a new
+  # `draft_video` the draft each was made from, with the same timestamps and
+  # metadata, instead of one 2560x704 side-by-side frame on `main_video`.
+  # The game renders on the GPU and is captured on demand.
+  # The image installs the GLVND EGL and GLES loaders (libegl1, libgles2), the
+  # container asks for the graphics driver capability, and EDEN_GAME_GPU is 1,
+  # so headless Chromium reaches the B200 instead of SwiftShader: a 12-frame
+  # capture takes about 0.2 s at the full 1280x704 (0.49-0.67 s on SwiftShader,
+  # slower under CPU contention), so `game_capture` is back to [1280, 704].
+  # Each chunk is captured when its step asks for it rather than while the
+  # previous chunk generates, so a key reaches the next chunk: key to received
+  # frame drops from 1.24-1.32 s to 0.69-0.86 s at 23.5-24 new fps. The new
+  # `draft_video` track is the only schema change; a client that drew the left
+  # half of `main_video` as the draft reads `draft_video` instead.
+  # 1.0.0: EdenLive renamed from `reactor/edenlive` to `reactor/eden-live`;
+  # it registers as a new model and starts again at 1.0.0. The client contract
+  # is edenlive 1.0.3's, unchanged: the same commands, messages, tracks, and
+  # codes. It ships everything edenlive 1.0.1-1.0.3 shipped (load-time warmup,
+  # chunk timing summaries, the game rendered at 832x458 so game mode holds
+  # 24 fps), plus a chunk timing summary that covers one measurement run: a
+  # pause, `start`, `set_source`, or a new session drops the samples not yet
+  # summarized. The entries below are the history of `reactor/edenlive`.
+  #
+  # edenlive 1.0.3: PATCH. The game renders at 832x458 (`game_capture` in
+  # edenlive.yaml) and the draft is scaled to 1280x704: the software-rendered
+  # capture drops from 0.62-0.65 s to 0.35-0.40 s per chunk, so game mode holds
+  # 24 new fps instead of 18-21 and playout no longer stalls at chunk
+  # boundaries. No schema change.
+  # edenlive 1.0.2: PATCH. Logs a chunk timing summary every 12 chunks: new
+  # frames per second and the median cycle split into emit, draft wait,
+  # generate() and the game's capture time. No schema change, no behaviour
+  # change.
+  # edenlive 1.0.1: PATCH. `warmup: true` compiles during load: the model
+  # generates throwaway worlds until every compiled shape and CUDA graph a
+  # session uses exists, so the first session runs at steady-state speed (cold
+  # load ~110 s on a B200; steady 0.21 s per chunk). No schema change.
+  # edenlive 1.0.0: MAJOR. The draft can come from the client: a
+  # `source_video` input track and a `set_source` command (`game` | `client`)
+  # that switches sources any time, keeping the world. Both sources reach the
+  # model through one path (model_behaviour.md, "The shared draft path").
+  # `start` fails with `image_required` in `client` mode without a reference;
+  # `set_image` no longer needs a game there. The snapshot message is renamed
+  # `eden_status` -> `state_update` (breaking) and gains `source`; every
+  # description is rewritten for clients. PORTING.md records the decisions.
+  # edenlive 0.1.0: initial port, imported from
+  # reactor-team/reactor-edenlive @ e11bca2.
+  version: 2.1.4
+  description: |
+    EdenLive 5B: reskins a draft video into a generated world, chunk by chunk,
+    from an appearance reference and a prompt. The draft comes from one of
+    seven official code games, steered with held keys, or from the client's own
+    video track; `set_source` switches between them without restarting the
+    world. Each chunk streams the generated frames on `main_video` and the draft
+    they were made from on `draft_video`.
+  resources:
+    gpu:
+      type: NVIDIA_B200
+      count: 1
+runtime:
+  import: edenlive_app:EdenLive
+  config: edenlive.yaml
+build:
+  runtime_version: "3.8.3"
+  python_version: "3.12"
+  cuda_version: "13.0.2"
+  python_requirements: requirements.txt
+  system_packages:
+    - python3.12-dev
+    - build-essential
+    - ffmpeg
+    - nodejs
+    - npm
+    - libgl1
+    - libglib2.0-0
+    # The GLVND loaders NVIDIA's EGL driver plugs into; without them headless
+    # Chromium cannot reach the GPU and renders the game on SwiftShader.
+    - libegl1
+    - libgles2
+  run:
+    - python -m playwright install --with-deps chromium
+  runtime_env:
+    # The game renders on the model's own GPU (the only one the container sees);
+    # without the graphics capability the driver's EGL library is not mounted.
+    EDEN_GAME_GPU: "1"
+    NVIDIA_DRIVER_CAPABILITIES: "compute,utility,graphics"
+    HF_HUB_OFFLINE: "1"
+    TOKENIZERS_PARALLELISM: "false"
+    OMP_NUM_THREADS: "8"
+    # The Playwright drivers never need a debugger. Ignoring SIGUSR1 keeps one
+    # from being opened from outside, which lets an agent write into their
+    # stdout protocol stream and wedge the game browser.
+    NODE_OPTIONS: "--disable-sigusr1"

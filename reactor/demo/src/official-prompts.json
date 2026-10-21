@@ -1,0 +1,23 @@
+{
+  "freeze": {
+    "prompt": "First-person traversal of a volcanic cavern above a lava lake. A freeze gun remains visible in the foreground. Small stepping stones lead toward a raised exit platform. Maintain the same cavern layout and weapon identity throughout."
+  },
+  "spiders": {
+    "prompt": "First-person exploration and axe combat inside a torch-lit stone cave. A single steel axe with a long wooden handle stays in the lower right foreground between swings, its handle extending below the image. The axe moves without visible hands, gloves or arms. Large brown eight-legged spiders crawl on the floor. Maintain the same winding cave, warm orange torches, cool stone walls, weapon and creature identities. No spiderwebs, text or HUD in the scene."
+  },
+  "tracer": {
+    "prompt": "First-person dual-pistol combat in a sunlit stylized city street. Two compact white and orange pulse pistols with glowing cyan cores stay visible in the lower foreground. Red humanoid robots fight among blue cargo crates, ochre and teal buildings and small trees. Maintain weapon identity, street layout and enemy identities. Cyan player projectiles and orange enemy projectiles remain clearly visible. No text or HUD in the scene."
+  },
+  "bioshock": {
+    "prompt": "First-person electro bolt and pipe wrench combat in an underwater art deco machine room. Keep the same orange pipe wrench in the right hand and bare electrical left hand visible, teal tiled walls and floor, copper pipes, brass trim, warm lamps, underwater window and central generator. Hostile masked workers approach and attack with their hands. Electric shocks are bright blue; stunned enemies tremble with blue arcs. A shallow pool at the back conducts electricity. Defeated enemies remain on the floor. No text or HUD in the scene."
+  },
+  "godzilla": {
+    "prompt": "Third-person elevated following camera behind exactly one giant dark green reptilian kaiju rampaging through a miniature city. There is only one monster in the entire scene, always the same continuous body with jagged dorsal plates and one long tail. Keep the same city layout. The monster breathes a continuous orange-yellow flame jet from its open mouth, burning buildings into chunks and dust. Stomps create ground shockwaves. Warm bronze defense towers fire slow visible orange cannon shells. Collapsed buildings remain as low piles of grey and brown angular concrete blocks and dust. Rubble has no scales, limbs, heads or tails. No additional monsters, duplicate bodies or monster-shaped debris appear. Destroyed buildings never reappear. No text, HUD or human figures."
+  },
+  "arcadeduel": {
+    "prompt": "A side-view arcade fighting match between exactly two martial artists, one in blue on the left and one in orange on the right, on a raised teal arena platform with dark pillars behind them. Keep their identities and the arena consistent. Full bodies stay visible. Fast punches, spinning kicks, rising uppercuts, jumping and brief dash afterimages follow the fighters. Crescent energy projectiles fly horizontally and disappear on impact. Brief sparks mark contact. A blocked strike meets raised forearms; a missed strike does not hurt the other fighter. No additional fighters, weapons, text or HUD."
+  },
+  "dust2": {
+    "prompt": "First-person rifle combat through a sunlit sandy desert alley, stone arch, courtyard and right-hand passage. Keep the same rifle, hands, architecture and wooden crates. Helmeted soldiers in green fatigues aim, fire short bursts, react to hits and fall when defeated. Cover blocks gunfire. Rifle shots show brief muzzle flashes, recoil, ejected casings and impact sparks. Flashbangs burst briefly and stunned soldiers stop firing. Keep the geography and enemy identities consistent, no extra soldiers or on-screen text, no HUD or blood."
+  }
+}

@@ -1,0 +1,21 @@
+# Copyright (c) 2026 Reactor Technologies, Inc. All rights reserved.
+# Model dependencies resolved with Reactor Runtime during `reactor build`.
+# `build.runtime_version` in reactor.yaml selects the Runtime release.
+# numpy and pyyaml come with the runtime and are not pinned here.
+pillow==12.3.0
+playwright==1.63.0
+# Native 5B inference dependencies, without its separate WebRTC serving stack.
+torch==2.13.0
+torchvision==0.28.0
+transformers==5.12.1
+diffusers==0.39.0
+safetensors==0.8.0
+einops==0.8.2
+loguru==0.7.3
+ftfy==6.3.1
+tyro==1.0.16
+boto3==1.43.95
+psutil==7.2.2
+nvidia-ml-py==13.610.43
+scipy==1.15.3
+flash-attn-4[cu13]==4.0.0b35
