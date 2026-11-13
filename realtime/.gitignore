@@ -127,6 +127,7 @@ venv.bak/
 *.lprof
 
 *build
+!/skills/edengolem/grimoire/build/
 compile_commands.json
 *.dump
 
